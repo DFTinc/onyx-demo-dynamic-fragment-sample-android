@@ -26,12 +26,12 @@ import android.widget.Toast;
 import com.dft.onyx.FingerprintTemplate;
 import com.dft.onyx.core;
 import com.dft.onyx.enroll.util.CaptureAnimationCallbackUtil;
-import com.dft.onyx.licensing.License;
-import com.dft.onyx.licensing.LicenseException;
-import com.dft.onyx.ui.CaptureConfiguration;
-import com.dft.onyx.ui.CaptureConfigurationBuilder;
-import com.dft.onyx.ui.CaptureMetrics;
-import com.dft.onyx.ui.OnyxFragment;
+import com.dft.onyxcamera.licensing.License;
+import com.dft.onyxcamera.licensing.LicenseException;
+import com.dft.onyxcamera.ui.CaptureConfiguration;
+import com.dft.onyxcamera.ui.CaptureConfigurationBuilder;
+import com.dft.onyxcamera.ui.CaptureMetrics;
+import com.dft.onyxcamera.ui.OnyxFragment;
 
 import org.opencv.android.OpenCVLoader;
 
