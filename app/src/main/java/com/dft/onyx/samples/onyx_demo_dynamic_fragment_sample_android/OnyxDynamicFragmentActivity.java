@@ -146,7 +146,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
          * You can then specify the callbacks you'd like to receive
          */
         // The CaptureanimationCallbackUtil creates the spinner animation that shows during
-        // the capture processed
+        // the capture process
         private OnyxFragment.CaptureAnimationCallback mCaptureAnimationCallback =
                 new CaptureAnimationCallbackUtil().createCaptureAnimationCallback(getActivity());
 
