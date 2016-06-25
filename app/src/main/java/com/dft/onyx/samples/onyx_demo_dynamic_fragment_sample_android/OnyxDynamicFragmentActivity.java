@@ -10,12 +10,10 @@ import android.graphics.Bitmap;
 import android.os.Bundle;
 import android.os.CountDownTimer;
 import android.util.Log;
-import android.view.LayoutInflater;
 import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.view.ViewGroup;
 import android.view.ViewGroup.LayoutParams;
 import android.view.animation.AlphaAnimation;
 import android.view.animation.Animation;
@@ -25,13 +23,13 @@ import android.widget.Toast;
 
 import com.dft.onyx.FingerprintTemplate;
 import com.dft.onyx.core;
-import com.dft.onyx.enroll.util.CaptureAnimationCallbackUtil;
 import com.dft.onyxcamera.licensing.License;
 import com.dft.onyxcamera.licensing.LicenseException;
 import com.dft.onyxcamera.ui.CaptureConfiguration;
 import com.dft.onyxcamera.ui.CaptureConfigurationBuilder;
 import com.dft.onyxcamera.ui.CaptureMetrics;
 import com.dft.onyxcamera.ui.OnyxFragment;
+import com.dft.onyxcamera.ui.OnyxFragmentFactory;
 
 import org.opencv.android.OpenCVLoader;
 
@@ -52,7 +50,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
         setContentView(R.layout.activity_fragment_container);
         if (savedInstanceState == null) {
             getFragmentManager().beginTransaction()
-                    .add(R.id.container, new OnyxDynamicFragment()).commit();
+                    .add(R.id.fragment_content, new OnyxDynamicFragment()).commit();
         }
     }
 
@@ -62,6 +60,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
     public static class OnyxDynamicFragment extends Fragment {
         private final static String TAG = OnyxDynamicFragment.class.getSimpleName();
         private final static String ENROLL_FILENAME = "enrolled_template.bin";
+        private Activity mActivity;
 
         private ImageView mFingerprintView;
         private Animation mFadeIn;
@@ -80,29 +79,31 @@ public class OnyxDynamicFragmentActivity extends Activity {
             }
         }
 
+
         public OnyxDynamicFragment() {
             // Required empty public constructor
         }
 
-        @Override
-        public View onCreateView(LayoutInflater inflater, ViewGroup container,
-                                 Bundle savedInstanceState) {
-            if (null != getActivity().getActionBar()) {
-                getActivity().getActionBar().hide();
-            }
-            View v = inflater.inflate(R.layout.base_layout, container, false);
-            return v;
-        }
+//        @Override
+//        public View onCreateView(LayoutInflater inflater, ViewGroup container,
+//                                 Bundle savedInstanceState) {
+//            if (null != mActivity.getActionBar()) {
+//                mActivity.getActionBar().hide();
+//            }
+//            View v = inflater.inflate(R.layout.activity_fragment_container, container, false);
+//            return v;
+//        }
 
         @Override
         public void onResume() {
             super.onResume();
+            mActivity = getActivity();
             // Handle the Onyx licensing
-            License lic = License.getInstance(getActivity());
+            License lic = License.getInstance(mActivity);
             try {
                 lic.validate(getString(R.string.onyx_license));
             } catch (LicenseException e) {
-                AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+                AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
                 builder.setTitle("License error")
                         .setMessage(e.getMessage())
                         .setNegativeButton("OK", new DialogInterface.OnClickListener() {
@@ -117,7 +118,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
             loadEnrolledTemplateIfExists();
 
             // Add the OnyxFragment programatically
-            mFragment = new OnyxFragment();
+            mFragment = new OnyxFragmentFactory().getOnyxFragment(mActivity);
             FragmentTransaction ft = getFragmentManager().beginTransaction();
             ft.replace(R.id.fragment_content, mFragment, TAG);
             ft.commit();
@@ -138,7 +139,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
 
             LayoutParams layoutParams = new LayoutParams(LayoutParams.MATCH_PARENT,
                     LayoutParams.MATCH_PARENT);
-            mFingerprintView = new ImageView(getActivity());
+            mFingerprintView = new ImageView(mActivity);
             getActivity().addContentView(mFingerprintView, layoutParams);
         }
 
@@ -147,8 +148,8 @@ public class OnyxDynamicFragmentActivity extends Activity {
          */
         // The CaptureanimationCallbackUtil creates the spinner animation that shows during
         // the capture processed
-        private OnyxFragment.CaptureAnimationCallback mCaptureAnimationCallback =
-                new CaptureAnimationCallbackUtil().createCaptureAnimationCallback(getActivity());
+//        private OnyxFragment.CaptureAnimationCallback mCaptureAnimationCallback =
+//                new CaptureAnimationCallbackUtil().createCaptureAnimationCallback(mActivity);
 
         private OnyxFragment.ProcessedBitmapCallback mProcessedCallback =
                 new OnyxFragment.ProcessedBitmapCallback() {
@@ -200,7 +201,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
                 Log.d(TAG, "Template quality: " + mCurrentTemplate.getQuality());
 
                 if (mEnrolledTemplate != null) {
-                    VerifyTask verifyTask = new VerifyTask(getActivity());
+                    VerifyTask verifyTask = new VerifyTask(mActivity);
                     verifyTask.execute(mCurrentTemplate, mEnrolledTemplate);
                 }
             }
@@ -287,9 +288,10 @@ public class OnyxDynamicFragmentActivity extends Activity {
         }
 
         private void createEnrollQuestionDialog() {
-            AlertDialog.Builder builder = new AlertDialog.Builder(getActivity());
+            if (null != mActivity) {
+            AlertDialog.Builder builder = new AlertDialog.Builder(mActivity);
             builder.setTitle(R.string.enroll_title);
-            String enrollQuestion = getResources().getString(R.string.enroll_question);
+            String enrollQuestion = mActivity.getResources().getString(R.string.enroll_question);
             builder.setMessage(enrollQuestion + "\n\n" +
                     "(Quality is " + (int) mCurrentFocusQuality + ")");
             builder.setPositiveButton("Yes", new DialogInterface.OnClickListener() {
@@ -313,6 +315,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
 
             AlertDialog dialog = builder.create();
             dialog.show();
+            }
         }
 
         private void enrollCurrentTemplate() {
@@ -320,7 +323,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
             deleteEnrolledTemplateIfExists();
 
             try {
-                FileOutputStream enrollStream = getActivity().openFileOutput(ENROLL_FILENAME, MODE_PRIVATE);
+                FileOutputStream enrollStream = mActivity.openFileOutput(ENROLL_FILENAME, MODE_PRIVATE);
                 ObjectOutputStream oos = new ObjectOutputStream(enrollStream);
                 oos.writeObject(mEnrolledTemplate);
                 oos.close();
@@ -332,7 +335,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
         }
 
         private void deleteEnrolledTemplateIfExists() {
-            File enrolledFile = getActivity().getFileStreamPath(ENROLL_FILENAME);
+            File enrolledFile = mActivity.getFileStreamPath(ENROLL_FILENAME);
             if (enrolledFile.exists()) {
                 enrolledFile.delete();
             }
@@ -342,10 +345,10 @@ public class OnyxDynamicFragmentActivity extends Activity {
          * This method loads the fingerprint template if it exists.
          */
         private void loadEnrolledTemplateIfExists() {
-            File enrolledFile = getActivity().getFileStreamPath(ENROLL_FILENAME);
+            File enrolledFile = mActivity.getFileStreamPath(ENROLL_FILENAME);
             if (enrolledFile.exists()) {
                 try {
-                    FileInputStream enrollStream = getActivity().openFileInput(ENROLL_FILENAME);
+                    FileInputStream enrollStream = mActivity.openFileInput(ENROLL_FILENAME);
                     ObjectInputStream ois = new ObjectInputStream(enrollStream);
                     mEnrolledTemplate = (FingerprintTemplate) ois.readObject();
                 } catch (FileNotFoundException e) {
@@ -381,7 +384,7 @@ public class OnyxDynamicFragmentActivity extends Activity {
          * This method clears the currently enrolled fingerprint template.
          */
         private void menuClearEnrollment() {
-            Toast.makeText(getActivity(), "Clearing enrolled fingerprint.", Toast.LENGTH_SHORT).show();
+            Toast.makeText(mActivity, "Clearing enrolled fingerprint.", Toast.LENGTH_SHORT).show();
             mEnrolledTemplate = null;
             deleteEnrolledTemplateIfExists();
         }
